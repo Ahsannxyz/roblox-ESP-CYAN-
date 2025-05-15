@@ -1,0 +1,86 @@
+-- Skeleton ESP (Cyan)
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+-- Create drawing lines for skeletons
+local skeletons = {}
+
+function createLine()
+    local line = Drawing.new("Line")
+    line.Color = Color3.fromRGB(0, 255, 255) -- Cyan
+    line.Thickness = 1.5
+    line.Transparency = 1
+    return line
+end
+
+function getCharacterPoints(char)
+    local parts = {}
+    for _, partName in ipairs({
+        "Head", "Torso", "UpperTorso", "LowerTorso",
+        "LeftArm", "RightArm", "LeftLeg", "RightLeg",
+        "LeftUpperArm", "RightUpperArm", "LeftLowerArm", "RightLowerArm",
+        "LeftHand", "RightHand", "LeftUpperLeg", "RightUpperLeg",
+        "LeftLowerLeg", "RightLowerLeg", "LeftFoot", "RightFoot"
+    }) do
+        local part = char:FindFirstChild(partName) or (char:FindFirstChild("HumanoidRootPart") and char.HumanoidRootPart)
+        parts[partName] = part
+    end
+    return parts
+end
+
+function drawSkeleton(character, lines)
+    local camera = workspace.CurrentCamera
+    local points = getCharacterPoints(character)
+
+    local function drawLine(fromPart, toPart, line)
+        if fromPart and toPart and fromPart:IsA("BasePart") and toPart:IsA("BasePart") then
+            local fromPos, onScreen1 = camera:WorldToViewportPoint(fromPart.Position)
+            local toPos, onScreen2 = camera:WorldToViewportPoint(toPart.Position)
+            if onScreen1 and onScreen2 then
+                line.From = Vector2.new(fromPos.X, fromPos.Y)
+                line.To = Vector2.new(toPos.X, toPos.Y)
+                line.Visible = true
+            else
+                line.Visible = false
+            end
+        else
+            line.Visible = false
+        end
+    end
+
+    -- Simple skeleton lines
+    drawLine(points.Head, points.UpperTorso, lines[1])
+    drawLine(points.UpperTorso, points.LowerTorso, lines[2])
+    drawLine(points.UpperTorso, points.LeftUpperArm, lines[3])
+    drawLine(points.LeftUpperArm, points.LeftLowerArm, lines[4])
+    drawLine(points.LeftLowerArm, points.LeftHand, lines[5])
+    drawLine(points.UpperTorso, points.RightUpperArm, lines[6])
+    drawLine(points.RightUpperArm, points.RightLowerArm, lines[7])
+    drawLine(points.RightLowerArm, points.RightHand, lines[8])
+    drawLine(points.LowerTorso, points.LeftUpperLeg, lines[9])
+    drawLine(points.LeftUpperLeg, points.LeftLowerLeg, lines[10])
+    drawLine(points.LeftLowerLeg, points.LeftFoot, lines[11])
+    drawLine(points.LowerTorso, points.RightUpperLeg, lines[12])
+    drawLine(points.RightUpperLeg, points.RightLowerLeg, lines[13])
+    drawLine(points.RightLowerLeg, points.RightFoot, lines[14])
+end
+
+-- Main update loop
+RunService.RenderStepped:Connect(function()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Humanoid") and player.Character:FindFirstChild("Humanoid").Health > 0 then
+            if not skeletons[player] then
+                skeletons[player] = {}
+                for i = 1, 14 do
+                    table.insert(skeletons[player], createLine())
+                end
+            end
+            drawSkeleton(player.Character, skeletons[player])
+        elseif skeletons[player] then
+            for _, line in ipairs(skeletons[player]) do
+                line.Visible = false
+            end
+        end
+    end
+end)
